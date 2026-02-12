@@ -1,14 +1,12 @@
 venv/
-backend/venv/
-node_modules/
+.venv/
 __pycache__/
 *.pyc
 .env
-
-# Keep these ignored (User uploads/temp files)
-backend/uploads/
-backend/outputs/
-
-# OS
+*.h5
+!backend/models/*.h5
+archive*/
+data/
+*.log
+node_modules/
 .DS_Store
-Thumbs.db
