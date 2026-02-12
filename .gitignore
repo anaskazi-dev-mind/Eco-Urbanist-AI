@@ -1,0 +1,23 @@
+venv/
+backend/venv/
+node_modules/
+__pycache__/
+*.pyc
+.env
+
+# Large data / models
+backend/data/
+backend/models/
+backend/assets/icons/*.png
+backend/uploads/
+backend/outputs/
+*.h5
+*.weights.h5
+*.zip
+*.tar
+*.pth
+*.pt
+
+# OS
+.DS_Store
+Thumbs.db
