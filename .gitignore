@@ -5,18 +5,9 @@ __pycache__/
 *.pyc
 .env
 
-# Large data / models
-backend/data/
-backend/models/
-backend/assets/icons/*.png
+# Keep these ignored (User uploads/temp files)
 backend/uploads/
 backend/outputs/
-*.h5
-*.weights.h5
-*.zip
-*.tar
-*.pth
-*.pt
 
 # OS
 .DS_Store
