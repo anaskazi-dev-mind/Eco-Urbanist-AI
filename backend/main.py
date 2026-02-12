@@ -1,30 +1,33 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from PIL import Image
 import numpy as np
 import io
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow warnings
+from pathlib import Path
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 try:
     import tensorflow as tf
     from tensorflow import keras
 except ImportError:
-    raise ImportError("TensorFlow not installed. Run: pip install tensorflow-cpu")
+    raise ImportError("TensorFlow not installed")
 
-app = FastAPI(title="Eco-Urbanist AI API", version="1.0.0")
+app = FastAPI(title="Eco-Urbanist AI", version="1.0.0")
 
-# CORS settings
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with your frontend URL in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Load the trained model
+# Load model
 MODEL_PATH = "models/pix2pix_generator.h5"
 model = None
 
@@ -34,58 +37,38 @@ async def load_model():
     try:
         if os.path.exists(MODEL_PATH):
             model = keras.models.load_model(MODEL_PATH, compile=False)
-            print(f"✅ Model loaded successfully from {MODEL_PATH}")
+            print(f"✅ Model loaded from {MODEL_PATH}")
         else:
             print(f"⚠️ Model not found at {MODEL_PATH}")
     except Exception as e:
         print(f"❌ Error loading model: {e}")
 
-@app.get("/")
-def read_root():
-    return {
-        "message": "Eco-Urbanist AI Backend is running! 🌳",
-        "version": "1.0.0",
-        "model_loaded": model is not None,
-        "endpoints": {
-            "health": "/health",
-            "predict": "/predict (POST)"
-        }
-    }
-
-@app.get("/health")
+# API endpoints
+@app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
-        "model_loaded": model is not None,
-        "model_path": MODEL_PATH
+        "model_loaded": model is not None
     }
 
-@app.post("/predict")
+@app.post("/api/predict")
 async def predict(file: UploadFile = File(...)):
-    """
-    Upload a satellite/map image and get an eco-urbanized version.
-    """
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
     
     try:
-        # Read and preprocess image
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert('RGB')
         image = image.resize((256, 256))
         
-        # Normalize to [-1, 1]
         img_array = np.array(image) / 127.5 - 1.0
         img_array = np.expand_dims(img_array, 0)
         
-        # Predict
         prediction = model.predict(img_array, verbose=0)
         
-        # Denormalize to [0, 255]
         output = ((prediction[0] + 1.0) * 127.5).astype(np.uint8)
         output_image = Image.fromarray(output)
         
-        # Convert to bytes
         img_byte_arr = io.BytesIO()
         output_image.save(img_byte_arr, format='PNG')
         img_byte_arr.seek(0)
@@ -93,20 +76,66 @@ async def predict(file: UploadFile = File(...)):
         return StreamingResponse(img_byte_arr, media_type="image/png")
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/model-info")
+@app.get("/api/model-info")
 def model_info():
-    """Get information about the loaded model"""
     if model is None:
         return {"error": "Model not loaded"}
     
     return {
-        "model_type": "Pix2Pix Generator (U-Net)",
+        "model_type": "Pix2Pix Generator",
         "input_shape": [256, 256, 3],
-        "output_shape": [256, 256, 3],
-        "parameters": model.count_params() if hasattr(model, 'count_params') else "unknown"
+        "output_shape": [256, 256, 3]
     }
+
+# Serve static files from frontend/dist
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
+
+print(f"🔍 Looking for frontend at: {FRONTEND_DIST}")
+print(f"📁 Frontend exists: {FRONTEND_DIST.exists()}")
+
+if FRONTEND_DIST.exists():
+    # Mount static assets
+    assets_path = FRONTEND_DIST / "assets"
+    if assets_path.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
+        print(f"✅ Mounted /assets from {assets_path}")
+    
+    # Serve index.html for all non-API routes
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Don't serve frontend for API routes
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Try to serve the specific file
+        file_path = FRONTEND_DIST / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        
+        # Fallback to index.html for React Router
+        index_path = FRONTEND_DIST / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        
+        raise HTTPException(status_code=404, detail="Frontend not found")
+else:
+    print(f"⚠️ Frontend dist folder not found at {FRONTEND_DIST}")
+    
+    @app.get("/")
+    def root():
+        return {
+            "message": "Eco-Urbanist AI Backend is running! 🌳",
+            "version": "1.0.0",
+            "model_loaded": model is not None,
+            "endpoints": {
+                "health": "/api/health",
+                "predict": "/api/predict (POST)"
+            },
+            "warning": "Frontend not deployed. Build frontend with: cd frontend && npm run build"
+        }
 
 if __name__ == "__main__":
     import uvicorn
