@@ -5,13 +5,13 @@
 
 import axios from 'axios';
 
-// Base URL for API (backend server)
-const API_BASE_URL = 'http://localhost:8000';
+// Base URL for API - empty string for same domain (production), localhost for dev
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 30 seconds (image processing can take time)
+  timeout: 30000, // 30 seconds
   headers: {
     'Content-Type': 'application/json',
   },
@@ -26,7 +26,7 @@ const api = {
    */
   getHealth: async () => {
     try {
-      const response = await apiClient.get('/health');
+      const response = await apiClient.get('/api/health');
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Health check failed:', error);
@@ -85,15 +85,20 @@ const api = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        responseType: 'blob', // Important: receive image as blob
         timeout: 60000, // 60 seconds for AI processing
       });
 
-      return { success: true, data: response.data };
+      // Convert blob to data URL for display
+      const imageBlob = response.data;
+      const imageUrl = URL.createObjectURL(imageBlob);
+
+      return { success: true, data: imageUrl };
     } catch (error) {
       console.error('Prediction failed:', error);
       return { 
         success: false, 
-        error: error.response?.data?.detail || error.message 
+        error: error.response?.data?.detail || error.message || 'Prediction failed'
       };
     }
   },
