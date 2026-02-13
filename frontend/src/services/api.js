@@ -85,15 +85,11 @@ const api = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        responseType: 'blob', // Important: receive image as blob
         timeout: 60000, // 60 seconds for AI processing
       });
 
-      // Convert blob to data URL for display
-      const imageBlob = response.data;
-      const imageUrl = URL.createObjectURL(imageBlob);
-
-      return { success: true, data: imageUrl };
+      // Response is now JSON with filename and scores
+      return { success: true, data: response.data };
     } catch (error) {
       console.error('Prediction failed:', error);
       return { 

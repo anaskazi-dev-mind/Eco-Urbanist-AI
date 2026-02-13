@@ -6,6 +6,7 @@ from PIL import Image
 import numpy as np
 import io
 import os
+import time
 from pathlib import Path
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -43,6 +44,13 @@ async def load_model():
     except Exception as e:
         print(f"❌ Error loading model: {e}")
 
+def calculate_green_pixels(image_array):
+    """Calculate number of green pixels in an image"""
+    # Simple green detection: G > R and G > B
+    r, g, b = image_array[:,:,0], image_array[:,:,1], image_array[:,:,2]
+    green_mask = (g > r) & (g > b) & (g > 100)  # At least some green intensity
+    return np.sum(green_mask)
+
 # API endpoints
 @app.get("/api/health")
 def health_check():
@@ -57,26 +65,74 @@ async def predict(file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail="Model not loaded")
     
     try:
+        # Read and process input image
         contents = await file.read()
-        image = Image.open(io.BytesIO(contents)).convert('RGB')
-        image = image.resize((256, 256))
+        input_image = Image.open(io.BytesIO(contents)).convert('RGB')
+        input_image = input_image.resize((256, 256))
         
-        img_array = np.array(image) / 127.5 - 1.0
+        # Calculate input green score
+        input_array = np.array(input_image)
+        input_green_pixels = calculate_green_pixels(input_array)
+        input_total_pixels = 256 * 256
+        input_green_score = (input_green_pixels / input_total_pixels) * 100
+        
+        # Prepare for model prediction
+        img_array = input_array / 127.5 - 1.0
         img_array = np.expand_dims(img_array, 0)
         
+        # Generate prediction
         prediction = model.predict(img_array, verbose=0)
         
-        output = ((prediction[0] + 1.0) * 127.5).astype(np.uint8)
-        output_image = Image.fromarray(output)
+        # Convert prediction to image
+        output_array = ((prediction[0] + 1.0) * 127.5).astype(np.uint8)
+        output_image = Image.fromarray(output_array)
         
-        img_byte_arr = io.BytesIO()
-        output_image.save(img_byte_arr, format='PNG')
-        img_byte_arr.seek(0)
+        # Calculate output green score
+        output_green_pixels = calculate_green_pixels(output_array)
+        output_green_score = (output_green_pixels / input_total_pixels) * 100
         
-        return StreamingResponse(img_byte_arr, media_type="image/png")
+        # Save output image
+        output_filename = f"output_{int(time.time())}.png"
+        output_path = Path("outputs") / output_filename
+        output_path.parent.mkdir(exist_ok=True)
+        output_image.save(output_path)
+        
+        # Calculate improvement
+        improvement = output_green_score - input_green_score
+        
+        # Return JSON response
+        return {
+            "success": True,
+            "output_filename": output_filename,
+            "green_scores": {
+                "input": {
+                    "green_pixels": int(input_green_pixels),
+                    "total_pixels": input_total_pixels,
+                    "green_score": round(input_green_score, 2)
+                },
+                "output": {
+                    "green_pixels": int(output_green_pixels),
+                    "total_pixels": input_total_pixels,
+                    "green_score": round(output_green_score, 2)
+                },
+                "improvement": round(improvement, 2)
+            },
+            "metadata": {
+                "model_trained": True,
+                "processing_time": "N/A"
+            }
+        }
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/download/{filename}")
+async def download_image(filename: str):
+    """Download a generated image"""
+    file_path = Path("outputs") / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path, media_type="image/png", filename=filename)
 
 @app.get("/api/model-info")
 def model_info():
