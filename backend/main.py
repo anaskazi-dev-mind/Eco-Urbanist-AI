@@ -342,20 +342,20 @@ def root():
         ]
     }
 
-@app.get("/api/health")
-def health_check():
+# API endpoints
+@app.get("/api/info")  # ← CHANGED FROM "/" TO "/api/info"
+def root():
     return {
-        "status": "healthy",
+        "message": "Eco-Urbanist AI Backend 🌳",
+        "version": "2.2.0",
         "model_loaded": model is not None,
-        "icons_loaded": {
-            "large": len(tree_icons['large']),
-            "medium": len(tree_icons['medium']),
-            "small": len(tree_icons['small']),
-            "bush": len(tree_icons['bush']),
-            "grass": len(tree_icons['grass']),
-            "total": sum(len(icons) for icons in tree_icons.values())
-        },
-        "timestamp": time.time()
+        "icons_loaded": sum(len(icons) for icons in tree_icons.values()),
+        "features": [
+            "Enhanced building detection (10 methods)",
+            "Natural tree density",
+            "Works with desert AND city images",
+            "Accurate greenery analysis"
+        ]
     }
 
 @app.post("/api/predict")
