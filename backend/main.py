@@ -327,8 +327,8 @@ def create_green_overlay(original_array, green_mask, intensity=0.55):
         return original_array
 
 # API endpoints
-@app.get("/")
-def root():
+@app.get("/api/health")
+def health_check():
     return {
         "message": "Eco-Urbanist AI Backend 🌳",
         "version": "2.2.0",
