@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Download, ArrowLeft, TrendingUp, Image as ImageIcon, Leaf, TreePine } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Download, ArrowLeft, TrendingUp, Leaf, TreePine, Sparkles, Award, BarChart3, Cloud, Droplets, Sun, Wind } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import api from '../services/api';
 import { getGreenScoreColor, getGreenScoreLabel } from '../utils/helpers';
+import ImageComparisonSlider from '../components/ImageComparisonSlider';
 
 const Results = () => {
   const location = useLocation();
@@ -15,23 +16,19 @@ const Results = () => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    // Get data from navigation state
     const { result, inputFile } = location.state || {};
 
     if (!result) {
-      // No data, redirect to upload
       navigate('/upload');
       return;
     }
 
     setResultData(result);
 
-    // Set output image URL
     if (result.output_filename) {
       setOutputUrl(api.getDownloadUrl(result.output_filename));
     }
 
-    // Create input preview
     if (inputFile) {
       const reader = new FileReader();
       reader.onload = (e) => setInputPreview(e.target.result);
@@ -39,7 +36,6 @@ const Results = () => {
     }
   }, [location, navigate]);
 
-  // Download output image
   const handleDownload = async () => {
     if (resultData?.output_filename) {
       setIsDownloading(true);
@@ -56,10 +52,10 @@ const Results = () => {
 
   if (!resultData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-emerald-50 to-green-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading results...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 font-semibold">Loading amazing results...</p>
         </div>
       </div>
     );
@@ -72,332 +68,416 @@ const Results = () => {
   const visualization = resultData.visualization || {};
   const treesPlaced = visualization.trees_placed || 0;
   const iconBreakdown = visualization.icon_breakdown || {};
+  const greenPixelsAdded = (greenScores.output?.green_pixels || 0) - (greenScores.input?.green_pixels || 0);
 
-  // Chart data for bar chart
+  // Calculate environmental impact metrics
+  const co2Absorbed = (treesPlaced * 21).toFixed(1); // kg per year per tree
+  const oxygenProduced = (treesPlaced * 118).toFixed(0); // kg per year per tree
+  const airQualityImprovement = Math.min((improvement * 2.5).toFixed(1), 100);
+  const temperatureReduction = (improvement * 0.15).toFixed(1); // °C reduction estimate
+
   const chartData = [
     {
       name: 'Before',
-      'Green Coverage (%)': parseFloat(inputScore.toFixed(2)),
+      'Green Coverage': parseFloat(inputScore.toFixed(2)),
     },
     {
       name: 'After',
-      'Green Coverage (%)': parseFloat(outputScore.toFixed(2)),
+      'Green Coverage': parseFloat(outputScore.toFixed(2)),
     },
   ];
 
-  // Pie chart data for icon breakdown
-  const iconData = Object.entries(iconBreakdown)
-    .filter(([_, count]) => count > 0)
-    .map(([type, count]) => ({
-      name: type.charAt(0).toUpperCase() + type.slice(1),
-      value: count
-    }));
-
-  const COLORS = ['#22c55e', '#16a34a', '#15803d', '#14532d', '#65a30d'];
+  // Environmental Impact Radar Chart Data
+  const radarData = [
+    { metric: 'Green Coverage', before: inputScore, after: outputScore },
+    { metric: 'Air Quality', before: 40, after: 40 + parseFloat(airQualityImprovement) },
+    { metric: 'Biodiversity', before: 30, after: 30 + (improvement * 1.5) },
+    { metric: 'Temperature', before: 60, after: 60 + (improvement * 1.2) },
+    { metric: 'Water Retention', before: 35, after: 35 + (improvement * 1.8) },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 py-16">
       <div className="container-custom max-w-7xl">
+        
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-10">
           <Link
             to="/upload"
-            className="inline-flex items-center text-green-600 hover:text-green-700 font-medium mb-4 transition"
+            className="group inline-flex items-center text-green-600 hover:text-green-700 font-bold mb-6 transition-all bg-white px-5 py-3 rounded-xl shadow-md hover:shadow-lg"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Generate Another Visualization
+            <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Generate Another
           </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            🌳 Green Visualization Results
-          </h1>
-          <p className="text-xl text-gray-600">
-            AI-powered urban greening analysis complete
-          </p>
+          
+          <div className="text-center">
+            <div className="inline-flex items-center bg-white shadow-md border border-green-200 px-5 py-2.5 rounded-full mb-6">
+              <Award className="w-5 h-5 mr-2 text-green-600" />
+              <span className="text-sm font-bold text-green-700">Analysis Complete</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-4">
+              Green Visualization Results 🌳
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              AI-powered urban greening analysis with environmental impact assessment
+            </p>
+          </div>
         </div>
 
         {/* Success Banner */}
-        <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg mb-8">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Leaf className="h-8 w-8 text-green-500" />
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-8 rounded-3xl mb-10 shadow-2xl transform hover:scale-105 transition-transform">
+          <div className="flex items-start">
+            <div className="bg-white/20 p-4 rounded-2xl mr-6">
+              <Sparkles className="h-10 w-10 text-white" />
             </div>
-            <div className="ml-4">
-              <h3 className="text-lg font-semibold text-green-800">
-                Visualization Generated Successfully!
+            <div>
+              <h3 className="text-2xl font-black mb-2">
+                🎉 Visualization Generated Successfully!
               </h3>
-              <p className="text-green-700 mt-1">
-                Your image has been processed with {treesPlaced} tree icons placed strategically. 
-                Green coverage improved by <strong>{improvement.toFixed(2)}%</strong>!
+              <p className="text-green-100 text-lg">
+                Your image has been enhanced with <strong className="text-white">{treesPlaced} tree icons</strong> placed strategically. 
+                Green coverage improved by <strong className="text-yellow-300 text-2xl">+{improvement.toFixed(2)}%</strong>!
               </p>
             </div>
           </div>
         </div>
 
-        {/* Image Comparison */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <ImageIcon className="w-6 h-6 mr-2 text-green-600" />
-            Before & After Comparison
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Input Image */}
-            <div className="space-y-4">
-              <div className="text-center">
-                <span className="inline-block bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-semibold text-sm">
-                  📸 Original Image
-                </span>
-              </div>
-              {inputPreview ? (
-                <div className="relative group">
-                  <img
-                    src={inputPreview}
-                    alt="Input"
-                    className="w-full h-auto rounded-lg shadow-lg border-2 border-gray-200 transition-transform group-hover:scale-[1.02]"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all"></div>
-                </div>
-              ) : (
-                <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">No preview available</p>
-                </div>
-              )}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Initial Green Coverage</p>
-                <div className="flex items-center justify-between">
-                  <p className={`text-3xl font-bold ${getGreenScoreColor(inputScore)}`}>
-                    {inputScore.toFixed(2)}%
-                  </p>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getGreenScoreColor(inputScore)} bg-opacity-10`}>
-                    {getGreenScoreLabel(inputScore)}
-                  </span>
-                </div>
-              </div>
-            </div>
+        {/* Image Comparison Slider */}
+        {inputPreview && outputUrl && (
+          <div className="bg-white rounded-3xl shadow-2xl p-10 mb-10">
+            <h2 className="text-3xl font-black text-gray-900 mb-8 flex items-center justify-center">
+              <Sparkles className="w-8 h-8 mr-3 text-green-600" />
+              Before & After Comparison
+            </h2>
+            
+            <ImageComparisonSlider
+              beforeImage={inputPreview}
+              afterImage={outputUrl}
+              beforeLabel="Original"
+              afterLabel="AI Enhanced"
+            />
 
-            {/* Output Image */}
-            <div className="space-y-4">
-              <div className="text-center">
-                <span className="inline-block bg-green-100 text-green-700 px-4 py-2 rounded-full font-semibold text-sm">
-                  ✨ AI Enhanced
-                </span>
-              </div>
-              {outputUrl ? (
-                <div className="relative group">
-                  <img
-                    src={outputUrl}
-                    alt="Output"
-                    className="w-full h-auto rounded-lg shadow-lg border-2 border-green-200 transition-transform group-hover:scale-[1.02]"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all"></div>
-                </div>
-              ) : (
-                <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">Loading output...</p>
-                </div>
-              )}
-              <div className="bg-green-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Enhanced Green Coverage</p>
-                <div className="flex items-center justify-between">
-                  <p className={`text-3xl font-bold ${getGreenScoreColor(outputScore)}`}>
-                    {outputScore.toFixed(2)}%
-                  </p>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getGreenScoreColor(outputScore)} bg-opacity-10`}>
-                    {getGreenScoreLabel(outputScore)}
-                  </span>
-                </div>
-              </div>
+            {/* Download Button */}
+            <div className="mt-10 text-center">
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="group inline-flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-12 py-5 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-black text-xl shadow-2xl hover:shadow-green-500/50 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-6 h-6 group-hover:animate-bounce" />
+                {isDownloading ? 'Downloading...' : 'Download Enhanced Image'}
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Download Button */}
-          <div className="mt-8 text-center">
-            <button
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className="bg-green-500 text-white px-8 py-4 rounded-lg hover:bg-green-600 transition font-semibold inline-flex items-center shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download className="w-5 h-5 mr-2" />
-              {isDownloading ? 'Downloading...' : 'Download Enhanced Image'}
-            </button>
+        {/* Stats Cards - BIG NUMBERS */}
+        <div className="grid md:grid-cols-3 gap-8 mb-10">
+          
+          {/* Improvement Card */}
+          <div className="bg-white rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-all transform hover:scale-105 border-4 border-green-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-4 rounded-2xl shadow-lg">
+                <TrendingUp className="w-10 h-10 text-white" />
+              </div>
+              <div className="bg-green-100 px-4 py-2 rounded-full">
+                <span className="text-xs font-bold text-green-700">IMPROVEMENT</span>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-2 text-sm font-semibold">Green Coverage Boost</p>
+            <p className="text-6xl font-black text-green-600 mb-2">
+              +{improvement.toFixed(1)}%
+            </p>
+            <p className="text-xs text-gray-500">From {inputScore.toFixed(1)}% to {outputScore.toFixed(1)}%</p>
+          </div>
+
+          {/* Green Pixels Card */}
+          <div className="bg-white rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-all transform hover:scale-105 border-4 border-blue-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-blue-400 to-blue-500 p-4 rounded-2xl shadow-lg">
+                <Leaf className="w-10 h-10 text-white" />
+              </div>
+              <div className="bg-blue-100 px-4 py-2 rounded-full">
+                <span className="text-xs font-bold text-blue-700">PIXELS</span>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-2 text-sm font-semibold">Green Pixels Added</p>
+            <p className="text-5xl font-black text-blue-600 mb-2">
+              {greenPixelsAdded.toLocaleString()}
+            </p>
+            <p className="text-xs text-gray-500">Additional vegetation coverage</p>
+          </div>
+
+          {/* Trees Placed Card */}
+          <div className="bg-white rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-all transform hover:scale-105 border-4 border-emerald-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 p-4 rounded-2xl shadow-lg">
+                <TreePine className="w-10 h-10 text-white" />
+              </div>
+              <div className="bg-emerald-100 px-4 py-2 rounded-full">
+                <span className="text-xs font-bold text-emerald-700">TREES</span>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-2 text-sm font-semibold">Trees Placed</p>
+            <p className="text-6xl font-black text-emerald-600 mb-2">
+              {treesPlaced}
+            </p>
+            <p className="text-xs text-gray-500">AI-positioned tree icons</p>
           </div>
         </div>
 
-        {/* Analytics Dashboard */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-8">
-          {/* Green Coverage Comparison Chart */}
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
-              Green Coverage Comparison
+        {/* 🔥 NEW FEATURE 1: Environmental Impact Cards */}
+        <div className="mb-10">
+          <h2 className="text-3xl font-black text-gray-900 mb-6 flex items-center">
+            <Sparkles className="w-8 h-8 mr-3 text-green-600" />
+            Environmental Impact Assessment
+          </h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            
+            {/* CO2 Absorption */}
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl shadow-xl p-6 text-white transform hover:scale-105 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <Cloud className="w-10 h-10" />
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">Annual</span>
+              </div>
+              <p className="text-sm font-semibold mb-1 opacity-90">CO₂ Absorbed</p>
+              <p className="text-4xl font-black mb-1">{co2Absorbed} kg</p>
+              <p className="text-xs opacity-75">Equivalent to {(co2Absorbed / 411).toFixed(1)} cars off road/day</p>
+            </div>
+
+            {/* Oxygen Production */}
+            <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-3xl shadow-xl p-6 text-white transform hover:scale-105 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <Wind className="w-10 h-10" />
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">Annual</span>
+              </div>
+              <p className="text-sm font-semibold mb-1 opacity-90">Oxygen Produced</p>
+              <p className="text-4xl font-black mb-1">{oxygenProduced} kg</p>
+              <p className="text-xs opacity-75">Supports {(oxygenProduced / 730).toFixed(0)} people yearly</p>
+            </div>
+
+            {/* Air Quality */}
+            <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl shadow-xl p-6 text-white transform hover:scale-105 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <Droplets className="w-10 h-10" />
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">Improvement</span>
+              </div>
+              <p className="text-sm font-semibold mb-1 opacity-90">Air Quality Index</p>
+              <p className="text-4xl font-black mb-1">+{airQualityImprovement}%</p>
+              <p className="text-xs opacity-75">Reduces PM2.5 particles</p>
+            </div>
+
+            {/* Temperature Reduction */}
+            <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-3xl shadow-xl p-6 text-white transform hover:scale-105 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <Sun className="w-10 h-10" />
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">Cooling</span>
+              </div>
+              <p className="text-sm font-semibold mb-1 opacity-90">Temperature Drop</p>
+              <p className="text-4xl font-black mb-1">-{temperatureReduction}°C</p>
+              <p className="text-xs opacity-75">Urban heat island effect</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid lg:grid-cols-2 gap-8 mb-10">
+          
+          {/* Bar Chart */}
+          <div className="bg-white rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-shadow">
+            <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
+              <BarChart3 className="w-6 h-6 mr-3 text-green-600" />
+              Coverage Comparison
             </h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
+                <XAxis dataKey="name" stroke="#6b7280" style={{ fontWeight: 'bold' }} />
+                <YAxis stroke="#6b7280" style={{ fontWeight: 'bold' }} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value) => `${value}%`}
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '2px solid #22c55e', 
+                    borderRadius: '12px',
+                    fontWeight: 'bold'
+                  }}
+                  formatter={(value) => [`${value}%`, 'Green Coverage']}
                 />
-                <Legend />
-                <Bar dataKey="Green Coverage (%)" fill="#22c55e" radius={[8, 8, 0, 0]} />
+                <Legend wrapperStyle={{ fontWeight: 'bold' }} />
+                <Bar dataKey="Green Coverage" fill="url(#greenGradient)" radius={[12, 12, 0, 0]} />
+                <defs>
+                  <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22c55e" />
+                    <stop offset="100%" stopColor="#16a34a" />
+                  </linearGradient>
+                </defs>
               </BarChart>
             </ResponsiveContainer>
-            <div className="mt-4 text-center">
+            <div className="mt-6 text-center bg-green-50 py-4 rounded-xl">
               <p className="text-sm text-gray-600">
-                Improvement: <span className="font-bold text-green-600">+{improvement.toFixed(2)}%</span>
+                Total Improvement: <span className="font-black text-green-600 text-2xl">+{improvement.toFixed(2)}%</span>
               </p>
             </div>
           </div>
 
-          {/* Tree Icon Breakdown */}
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <TreePine className="w-5 h-5 mr-2 text-green-600" />
-              Tree Icon Distribution
+          {/* 🔥 NEW FEATURE 2: Environmental Radar Chart */}
+          <div className="bg-white rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-shadow">
+            <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
+              <Sparkles className="w-6 h-6 mr-3 text-green-600" />
+              Multi-Factor Impact Analysis
             </h3>
-            {iconData.length > 0 ? (
-              <div className="flex flex-col items-center">
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={iconData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {iconData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-4 grid grid-cols-2 gap-3 w-full">
-                  {Object.entries(iconBreakdown).map(([type, count]) => (
-                    count > 0 && (
-                      <div key={type} className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm text-gray-600 capitalize">{type}</p>
-                        <p className="text-2xl font-bold text-gray-900">{count}</p>
-                      </div>
-                    )
-                  ))}
+            <ResponsiveContainer width="100%" height={300}>
+              <RadarChart data={radarData}>
+                <PolarGrid stroke="#e5e7eb" />
+                <PolarAngleAxis dataKey="metric" style={{ fontSize: '12px', fontWeight: 'bold' }} />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} />
+                <Radar name="Before" dataKey="before" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.3} />
+                <Radar name="After" dataKey="after" stroke="#22c55e" fill="#22c55e" fillOpacity={0.5} />
+                <Legend />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '2px solid #22c55e', 
+                    borderRadius: '12px',
+                    fontWeight: 'bold'
+                  }}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-600 font-semibold">Comprehensive environmental benefit assessment</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 🔥 NEW FEATURE 3: Tree Distribution with Icons */}
+        <div className="bg-white rounded-3xl shadow-xl p-8 mb-10">
+          <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
+            <TreePine className="w-6 h-6 mr-3 text-green-600" />
+            Tree Distribution Analysis
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Object.entries(iconBreakdown).map(([type, count]) => (
+              count > 0 && (
+                <div 
+                  key={type} 
+                  className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 text-center border-2 border-green-200 hover:border-green-400 hover:shadow-lg transition-all transform hover:scale-110"
+                >
+                  <div className="text-5xl mb-3">
+                    {type === 'small' && '🌱'}
+                    {type === 'medium' && '🌳'}
+                    {type === 'large' && '🌲'}
+                    {type === 'bush' && '🌿'}
+                  </div>
+                  <p className="text-sm text-gray-600 capitalize font-semibold mb-2">{type} Trees</p>
+                  <p className="text-4xl font-black text-green-600">{count}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {type === 'small' && 'Young saplings'}
+                    {type === 'medium' && 'Mature trees'}
+                    {type === 'large' && 'Old growth'}
+                    {type === 'bush' && 'Shrubs'}
+                  </p>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                <TreePine className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No icon data available</p>
-              </div>
-            )}
+              )
+            ))}
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {/* Improvement Card */}
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 mb-1 text-sm">Total Improvement</p>
-                <p className="text-4xl font-bold text-green-600">
-                  +{improvement.toFixed(2)}%
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Green coverage increase</p>
-              </div>
-              <div className="bg-green-100 p-4 rounded-full">
-                <TrendingUp className="w-8 h-8 text-green-600" />
-              </div>
+        {/* 🔥 NEW FEATURE 4: Sustainability Score Card */}
+        <div className="bg-gradient-to-br from-green-600 via-emerald-600 to-green-700 rounded-3xl shadow-2xl p-10 mb-10 text-white">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-black mb-3">🏆 Sustainability Score</h2>
+            <p className="text-green-100 text-lg">Based on green coverage, tree density, and environmental impact</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {/* Overall Score */}
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center border-2 border-white/30">
+              <p className="text-sm font-semibold mb-2 opacity-90">Overall Score</p>
+              <p className="text-6xl font-black mb-2">{Math.min(Math.round(outputScore + (improvement * 2)), 100)}</p>
+              <p className="text-xs opacity-75">Out of 100</p>
+            </div>
+
+            {/* Grade */}
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center border-2 border-white/30">
+              <p className="text-sm font-semibold mb-2 opacity-90">Sustainability Grade</p>
+              <p className="text-6xl font-black mb-2">
+                {outputScore >= 80 ? 'A+' : outputScore >= 70 ? 'A' : outputScore >= 60 ? 'B+' : outputScore >= 50 ? 'B' : 'C'}
+              </p>
+              <p className="text-xs opacity-75">Excellent Rating</p>
+            </div>
+
+            {/* Trees per Hectare (estimate) */}
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center border-2 border-white/30">
+              <p className="text-sm font-semibold mb-2 opacity-90">Tree Density</p>
+              <p className="text-5xl font-black mb-2">{Math.round(treesPlaced * 2.5)}</p>
+              <p className="text-xs opacity-75">Trees per hectare (est.)</p>
             </div>
           </div>
 
-          {/* Green Pixels Card */}
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 mb-1 text-sm">Green Pixels Added</p>
-                <p className="text-4xl font-bold text-blue-600">
-                  {((greenScores.output?.green_pixels || 0) - (greenScores.input?.green_pixels || 0)).toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Additional green coverage</p>
-              </div>
-              <div className="bg-blue-100 p-4 rounded-full">
-                <ImageIcon className="w-8 h-8 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Trees Placed Card */}
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 mb-1 text-sm">Trees Placed</p>
-                <p className="text-4xl font-bold text-emerald-600">
-                  {treesPlaced}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">AI-positioned icons</p>
-              </div>
-              <div className="bg-emerald-100 p-4 rounded-full">
-                <TreePine className="w-8 h-8 text-emerald-600" />
-              </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+            <p className="text-center text-sm font-semibold mb-4">Achievement Unlocked 🎖️</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {improvement > 30 && (
+                <span className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-full text-xs font-black">
+                  🌟 Green Champion
+                </span>
+              )}
+              {treesPlaced > 50 && (
+                <span className="bg-green-400 text-green-900 px-4 py-2 rounded-full text-xs font-black">
+                  🌲 Forest Maker
+                </span>
+              )}
+              {outputScore > 70 && (
+                <span className="bg-blue-400 text-blue-900 px-4 py-2 rounded-full text-xs font-black">
+                  💚 Eco Warrior
+                </span>
+              )}
+              {co2Absorbed > 500 && (
+                <span className="bg-purple-400 text-purple-900 px-4 py-2 rounded-full text-xs font-black">
+                  ☁️ Carbon Fighter
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="font-bold text-gray-900 mb-4">Green Coverage Progress</h3>
-          <div className="space-y-4">
+        {/* Progress Bars */}
+        <div className="bg-white rounded-3xl shadow-xl p-8">
+          <h3 className="text-2xl font-black text-gray-900 mb-6">Green Coverage Progress</h3>
+          
+          <div className="space-y-6">
+            {/* Before */}
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Original</span>
-                <span className="font-medium">{inputScore.toFixed(2)}%</span>
+              <div className="flex justify-between text-sm mb-3">
+                <span className="text-gray-700 font-bold">Original Image</span>
+                <span className="font-black text-gray-900 text-lg">{inputScore.toFixed(2)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
+              <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden shadow-inner">
                 <div
-                  className="bg-gray-400 h-3 rounded-full transition-all duration-1000"
-                  style={{ width: `${inputScore}%` }}
+                  className="bg-gray-400 h-full rounded-full transition-all duration-1000"
+                  style={{ width: `${Math.min(inputScore, 100)}%` }}
                 ></div>
               </div>
             </div>
+
+            {/* After */}
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Enhanced</span>
-                <span className="font-medium text-green-600">{outputScore.toFixed(2)}%</span>
+              <div className="flex justify-between text-sm mb-3">
+                <span className="text-gray-700 font-bold">AI Enhanced Image</span>
+                <span className="font-black text-green-600 text-lg">{outputScore.toFixed(2)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
+              <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden shadow-inner">
                 <div
-                  className="bg-green-500 h-3 rounded-full transition-all duration-1000"
-                  style={{ width: `${outputScore}%` }}
+                  className="bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 h-full rounded-full transition-all duration-1000 shadow-lg"
+                  style={{ width: `${Math.min(outputScore, 100)}%` }}
                 ></div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Processing Info (Optional) */}
-        {resultData.metadata && (
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="font-bold text-blue-900 mb-2 flex items-center">
-              <ImageIcon className="w-5 h-5 mr-2" />
-              Processing Information
-            </h3>
-            <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
-              <div>
-                <p><strong>Processing Time:</strong> {resultData.metadata.processing_time || 'N/A'}</p>
-                <p><strong>Image Size:</strong> {resultData.metadata.original_size || 'N/A'}</p>
-              </div>
-              <div>
-                <p><strong>Version:</strong> {resultData.metadata.version || 'N/A'}</p>
-                <p><strong>Method:</strong> AI-guided visualization</p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

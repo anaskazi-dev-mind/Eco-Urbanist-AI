@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload as UploadIcon, X, Image as ImageIcon, Loader, AlertCircle } from 'lucide-react';
+import { Upload as UploadIcon, X, Image as ImageIcon, Loader2, AlertCircle, CheckCircle2, Sparkles, Zap, Shield, BarChart3 } from 'lucide-react';
 import api from '../services/api';
 import { validateImageFile, fileToDataUrl } from '../utils/helpers';
 
@@ -15,14 +15,11 @@ const Upload = () => {
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   
-  // Prevent duplicate API calls
   const isGeneratingRef = useRef(false);
 
-  // Handle file selection
   const handleFileSelect = async (selectedFile) => {
     setError(null);
 
-    // Validate file
     const validation = validateImageFile(selectedFile);
     if (!validation.valid) {
       setError(validation.error);
@@ -31,7 +28,6 @@ const Upload = () => {
 
     setFile(selectedFile);
 
-    // Generate preview
     try {
       const dataUrl = await fileToDataUrl(selectedFile);
       setPreview(dataUrl);
@@ -41,7 +37,6 @@ const Upload = () => {
     }
   };
 
-  // Handle file input change
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
@@ -49,7 +44,6 @@ const Upload = () => {
     }
   };
 
-  // Handle drag and drop
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -70,7 +64,6 @@ const Upload = () => {
     }
   };
 
-  // Remove selected file
   const handleRemoveFile = () => {
     setFile(null);
     setPreview(null);
@@ -80,11 +73,9 @@ const Upload = () => {
     isGeneratingRef.current = false;
   };
 
-  // Generate prediction
   const handleGenerate = async () => {
-    // CRITICAL: Prevent duplicate calls
     if (isGeneratingRef.current) {
-      console.warn('⚠️ Generation already in progress, ignoring duplicate call');
+      console.warn('���️ Generation already in progress');
       return;
     }
 
@@ -94,11 +85,10 @@ const Upload = () => {
     }
 
     if (isProcessing) {
-      console.warn('⚠️ Already processing, ignoring duplicate call');
+      console.warn('⚠️ Already processing');
       return;
     }
 
-    // Set flag to prevent duplicate calls
     isGeneratingRef.current = true;
     setIsProcessing(true);
     setError(null);
@@ -108,33 +98,29 @@ const Upload = () => {
     let progressInterval = null;
 
     try {
-      // Simulate progress with status messages
       progressInterval = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 90) {
             clearInterval(progressInterval);
-            setStatusMessage('AI is processing your image... This may take up to 5 minutes on free servers.');
+            setStatusMessage('AI is processing... This may take up to 5 minutes.');
             return 90;
           }
           
-          // Update status messages
           if (prev < 30) {
             setStatusMessage('Uploading image...');
           } else if (prev < 60) {
             setStatusMessage('Validating satellite image...');
           } else {
-            setStatusMessage('AI model is generating green spaces...');
+            setStatusMessage('AI model generating green spaces...');
           }
           
           return prev + 10;
         });
-      }, 1000); // Update every second
+      }, 1000);
 
-      // Call API
       console.log('Calling API to generate prediction...');
       const result = await api.generatePrediction(file);
 
-      // Clear interval
       if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
@@ -144,22 +130,19 @@ const Upload = () => {
       setStatusMessage('Complete!');
 
       if (result.success) {
-        // Success - navigate to results
         console.log('Success! Navigating to results...');
         
-        // Small delay to show completion
         setTimeout(() => {
           navigate('/results', { 
             state: { 
               result: result.data, 
               inputFile: file 
             },
-            replace: true // Replace history entry to prevent back button issues
+            replace: true
           });
         }, 500);
         
       } else {
-        // API returned success: false
         setError(result.error || 'Generation failed. Please try again.');
         setProgress(0);
         setStatusMessage('');
@@ -167,7 +150,6 @@ const Upload = () => {
       }
       
     } catch (err) {
-      // Clear interval on error
       if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
@@ -175,9 +157,7 @@ const Upload = () => {
 
       console.error('Prediction failed:', err);
       
-      // Handle different error types
       if (err.response?.status === 400) {
-        // Image validation error
         const errorData = err.response.data;
         if (errorData.detail && typeof errorData.detail === 'object') {
           setError(errorData.detail.message || 'Invalid image type. Please use a satellite/aerial image.');
@@ -187,7 +167,7 @@ const Upload = () => {
       } else if (err.response?.status === 503) {
         setError('AI model is not available. Please try again later.');
       } else if (err.message === 'Network Error') {
-        setError('Network error. The image might be too large or the server is not responding. Please try a smaller image.');
+        setError('Network error. The image might be too large. Please try a smaller image.');
       } else {
         setError(err.message || 'An unexpected error occurred. Please try again.');
       }
@@ -201,111 +181,123 @@ const Upload = () => {
     }
   };
 
-  // Handle browse button click
   const handleBrowseClick = () => {
     document.getElementById('fileInput')?.click();
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 py-12">
-      <div className="container-custom max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 py-16">
+      <div className="container-custom max-w-5xl">
+        
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <div className="inline-flex items-center bg-white shadow-md border border-green-200 px-4 py-2 rounded-full mb-6">
+            <Sparkles className="w-4 h-4 mr-2 text-green-600" />
+            <span className="text-sm font-bold text-green-700">AI-Powered Analysis</span>
+          </div>
+          
+          <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-4">
             Upload Satellite Image
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Upload a satellite or aerial view to visualize green spaces
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            📡 Please use top-down satellite/aerial images for best results
           </p>
         </div>
 
         {/* Upload Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+        <div className="bg-white rounded-3xl shadow-2xl p-10 mb-10 border border-gray-100">
           {!file ? (
             // Upload Zone
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-xl p-12 text-center transition ${
+              className={`border-3 border-dashed rounded-2xl p-16 text-center transition-all duration-300 ${
                 isDragging
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-300 hover:border-green-400'
+                  ? 'border-green-500 bg-green-50 scale-105 shadow-lg'
+                  : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'
               }`}
             >
-              <UploadIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Drag & Drop Your Satellite Image
-              </h3>
-              <p className="text-gray-600 mb-4">
-                or click to browse files
-              </p>
-              
-              {/* Hidden file input */}
-              <input
-                type="file"
-                id="fileInput"
-                style={{ display: 'none' }}
-                accept="image/png,image/jpeg,image/jpg"
-                onChange={handleFileChange}
-              />
-              
-              {/* Browse button */}
-              <button
-                type="button"
-                onClick={handleBrowseClick}
-                className="inline-block bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition cursor-pointer font-medium"
-              >
-                Select Image
-              </button>
-              
-              <p className="text-sm text-gray-500 mt-4">
-                Supports: PNG, JPEG (Max 10 MB)
-              </p>
-              <p className="text-xs text-green-600 mt-2">
-                ✓ Works with desert AND city satellite images
-              </p>
+              <div className={`transition-transform duration-300 ${isDragging ? 'scale-110' : ''}`}>
+                <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <UploadIcon className="w-10 h-10 text-white" />
+                </div>
+                
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Drop Your Satellite Image Here
+                </h3>
+                <p className="text-gray-600 mb-6 text-lg">
+                  or click the button below to browse
+                </p>
+                
+                <input
+                  type="file"
+                  id="fileInput"
+                  style={{ display: 'none' }}
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={handleFileChange}
+                />
+                
+                <button
+                  type="button"
+                  onClick={handleBrowseClick}
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <UploadIcon className="w-5 h-5" />
+                  Select Image
+                </button>
+                
+                <p className="text-sm text-gray-500 mt-6">
+                  Supports: PNG, JPEG (Max 10 MB)
+                </p>
+                <p className="text-sm text-green-600 font-semibold mt-2">
+                  ✓ Works with desert AND city satellite images
+                </p>
+              </div>
             </div>
           ) : (
             // Preview Zone
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900">Preview</h3>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  <h3 className="text-2xl font-bold text-gray-900">Image Ready</h3>
+                </div>
                 <button
                   onClick={handleRemoveFile}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="p-3 hover:bg-red-50 rounded-xl transition-all duration-300 group"
                   disabled={isProcessing}
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-6 h-6 text-gray-600 group-hover:text-red-600" />
                 </button>
               </div>
 
-              <div className="relative">
+              <div className="relative rounded-2xl overflow-hidden border-4 border-green-200 shadow-xl mb-6">
                 <img
                   src={preview}
                   alt="Preview"
-                  className="w-full h-auto rounded-lg border-2 border-gray-200"
+                  className="w-full h-auto"
                 />
               </div>
 
-              <div className="mt-4 flex items-center text-gray-600">
-                <ImageIcon className="w-5 h-5 mr-2" />
-                <span>{file.name}</span>
+              <div className="flex items-center text-gray-700 bg-gray-50 p-4 rounded-xl">
+                <ImageIcon className="w-5 h-5 mr-3 text-green-600" />
+                <span className="font-medium flex-1">{file.name}</span>
+                <span className="text-sm text-gray-500">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                </span>
               </div>
             </div>
           )}
 
           {/* Error Message */}
           {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
-              <AlertCircle className="w-5 h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+            <div className="mt-6 p-5 bg-red-50 border-2 border-red-200 rounded-xl flex items-start">
+              <AlertCircle className="w-6 h-6 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-red-600 font-medium">{error}</p>
+                <p className="text-red-700 font-semibold">{error}</p>
                 {error.includes('satellite') && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-red-600 text-sm mt-2">
                     💡 Tip: Use Google Maps satellite view screenshots or aerial photos
                   </p>
                 )}
@@ -315,23 +307,24 @@ const Upload = () => {
 
           {/* Progress Bar */}
           {isProcessing && (
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
+            <div className="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-bold text-gray-800">
                   {statusMessage}
                 </span>
-                <span className="text-sm font-medium text-green-600">
+                <span className="text-lg font-black text-green-600">
                   {progress}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
                 <div
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 h-full transition-all duration-500 ease-out"
+                  className="bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 h-full transition-all duration-500 ease-out shadow-lg"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-2">
-                ⏱️ This process may take 1-5 minutes. Please be patient...
+              <p className="text-sm text-gray-600 mt-4 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                This process may take 1-5 minutes. Please be patient...
               </p>
             </div>
           )}
@@ -341,35 +334,48 @@ const Upload = () => {
             <button
               onClick={handleGenerate}
               disabled={isProcessing}
-              className="w-full mt-6 bg-green-500 text-white px-6 py-4 rounded-lg hover:bg-green-600 transition font-semibold text-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-8 group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-5 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-black text-xl shadow-2xl hover:shadow-green-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Loader className="w-5 h-5 mr-2" />
+              <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
               Generate Green Visualization
+              <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
             </button>
           )}
         </div>
 
-        {/* Info Section */}
+        {/* Info Cards */}
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-md">
-            <h4 className="font-bold text-gray-900 mb-2">📸 Image Type</h4>
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+              <Zap className="w-6 h-6 text-blue-600" />
+            </div>
+            <h4 className="font-black text-gray-900 mb-2">📸 Image Type</h4>
             <p className="text-sm text-gray-600">
-              Use satellite/aerial views from Google Maps, Bing Maps, or drone photos
+              Use satellite/aerial views from Google Maps or drone photos
             </p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-md">
-            <h4 className="font-bold text-gray-900 mb-2">⚡ Processing Time</h4>
+          
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+              <Shield className="w-6 h-6 text-purple-600" />
+            </div>
+            <h4 className="font-black text-gray-900 mb-2">⚡ Processing</h4>
             <p className="text-sm text-gray-600">
-              AI generation takes 1-5 minutes. Works with desert AND city images!
+              AI generation takes 1-5 minutes. Works with any terrain!
             </p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-md">
-            <h4 className="font-bold text-gray-900 mb-2">🌳 Accurate Analysis</h4>
+          
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+              <BarChart3 className="w-6 h-6 text-green-600" />
+            </div>
+            <h4 className="font-black text-gray-900 mb-2">🌳 Analysis</h4>
             <p className="text-sm text-gray-600">
-              Advanced algorithms detect real vegetation and suggest optimal green spaces
+              Advanced algorithms detect vegetation and suggest green spaces
             </p>
           </div>
         </div>
+
       </div>
     </div>
   );

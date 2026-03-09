@@ -1,126 +1,165 @@
 import { Link } from 'react-router-dom';
-import { Sparkles, Upload, Image, TrendingUp } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, Leaf, TrendingUp, Shield } from 'lucide-react';
 
 const Hero = () => {
   return (
-    <div className="relative bg-gradient-to-br from-green-50 to-emerald-100 overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-10">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-green-400 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-400 rounded-full blur-3xl"></div>
+    <div className="relative bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 overflow-hidden min-h-screen flex items-center">
+      
+      {/* Subtle animated background */}
+      <div className="absolute inset-0 overflow-hidden opacity-30">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-green-300 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-300 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
       </div>
 
-      <div className="container-custom relative z-10 py-20 md:py-32">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* Left: Text Content */}
-          <div className="fade-in">
-            <div className="inline-flex items-center bg-green-100 text-green-700 px-4 py-2 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 mr-2" />
-              <span className="text-sm font-semibold">AI-Powered Urban Greening</span>
+      <div className="container-custom relative z-10 py-16">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          
+          {/* LEFT: Content */}
+          <div className="space-y-8">
+            
+            {/* Badge */}
+            <div className="inline-flex items-center bg-white shadow-md border border-green-200 px-5 py-2.5 rounded-full hover:shadow-lg transition-shadow">
+              <Sparkles className="w-4 h-4 mr-2 text-green-600" />
+              <span className="text-sm font-bold text-green-700">AI-Powered Urban Planning</span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Transform Cities into{' '}
-              <span className="text-green-500">Green Havens</span>
+            {/* Main Headline */}
+            <h1 className="text-5xl lg:text-6xl xl:text-7xl font-black text-gray-900 leading-tight">
+              Transform Cities Into
+              <br />
+              <span className="text-green-600">Green Havens</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
-              Upload building footprint images and watch our AI generate beautiful 
-              green satellite visualizations. Measure vegetation coverage and plan 
-              sustainable urban development.
+            {/* Description */}
+            <p className="text-xl text-gray-700 leading-relaxed max-w-xl">
+              Upload satellite images and let AI instantly visualize green spaces. 
+              Analyze vegetation coverage and plan sustainable urban development in minutes.
             </p>
 
-            {/* Features List */}
-            <div className="space-y-4 mb-8">
-              <div className="flex items-start">
-                <div className="bg-green-100 p-2 rounded-lg mr-4">
-                  <Upload className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Easy Upload</h3>
-                  <p className="text-gray-600">Drag & drop building mask images</p>
-                </div>
+            {/* Quick Benefits */}
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-semibold text-gray-700">Free Forever</span>
               </div>
-
-              <div className="flex items-start">
-                <div className="bg-green-100 p-2 rounded-lg mr-4">
-                  <Image className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">AI Generation</h3>
-                  <p className="text-gray-600">Pix2Pix GAN creates realistic green spaces</p>
-                </div>
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-semibold text-gray-700">No Signup</span>
               </div>
-
-              <div className="flex items-start">
-                <div className="bg-green-100 p-2 rounded-lg mr-4">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Green Score Analysis</h3>
-                  <p className="text-gray-600">Measure vegetation coverage percentage</p>
-                </div>
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-semibold text-gray-700">Results in 60s</span>
               </div>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link
                 to="/upload"
-                className="bg-green-500 text-white px-8 py-4 rounded-lg hover:bg-green-600 transition font-semibold text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                className="group inline-flex items-center justify-center gap-3 bg-green-600 text-white px-10 py-5 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:bg-green-700 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
               >
-                Start Generating
+                <Sparkles className="w-6 h-6" />
+                <span>Start Free Now</span>
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
               </Link>
+
               <a
                 href="#how-it-works"
-                className="bg-white text-green-600 border-2 border-green-500 px-8 py-4 rounded-lg hover:bg-green-50 transition font-semibold text-center"
+                className="inline-flex items-center justify-center gap-2 bg-white text-green-700 border-2 border-green-600 px-10 py-5 rounded-xl hover:bg-green-50 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                Learn More
+                See How It Works
               </a>
             </div>
+
+            {/* Trust Line */}
+            <p className="text-sm text-gray-600 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-green-600" />
+              Your images are processed securely and never stored
+            </p>
+
           </div>
 
-          {/* Right: Visual/Image */}
-          <div className="relative fade-in hidden md:block">
-            <div className="relative">
-              {/* Placeholder for demo image/animation */}
-              <div className="bg-white rounded-2xl shadow-2xl p-8 transform hover:scale-105 transition duration-300">
-                <div className="space-y-4">
-                  {/* Mock before/after visualization */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <div className="bg-gray-200 h-40 rounded-lg mb-2 flex items-center justify-center">
-                        <Upload className="w-12 h-12 text-gray-400" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-600">Building Mask</p>
+          {/* RIGHT: Visual Demo */}
+          <div className="relative">
+            
+            {/* Main Card */}
+            <div className="relative bg-white rounded-3xl shadow-2xl p-8 transform hover:scale-105 transition-all duration-500">
+              
+              {/* Before/After Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                
+                {/* Before */}
+                <div className="group">
+                  <div className="bg-gray-100 rounded-xl p-4 h-40 flex flex-col items-center justify-center border-2 border-gray-200 transition-all group-hover:border-gray-400 group-hover:shadow-lg">
+                    <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mb-2">
+                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
                     </div>
-                    <div className="text-center">
-                      <div className="bg-gradient-to-br from-green-200 to-green-400 h-40 rounded-lg mb-2 flex items-center justify-center">
-                        <Sparkles className="w-12 h-12 text-white" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-600">AI Generated</p>
-                    </div>
+                    <p className="text-xs font-bold text-gray-700">Original Image</p>
                   </div>
+                </div>
 
-                  {/* Mock green score */}
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-gray-700">Green Score</span>
-                      <span className="text-2xl font-bold text-green-600">65%</span>
+                {/* After */}
+                <div className="group">
+                  <div className="bg-gradient-to-br from-green-100 to-emerald-200 rounded-xl p-4 h-40 flex flex-col items-center justify-center border-2 border-green-300 transition-all group-hover:border-green-500 group-hover:shadow-lg">
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-2 animate-pulse">
+                      <Sparkles className="w-6 h-6 text-white" />
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '65%' }}></div>
-                    </div>
+                    <p className="text-xs font-bold text-green-700">AI Enhanced</p>
                   </div>
+                </div>
+
+              </div>
+
+              {/* Green Score Display */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 p-5 rounded-xl">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-bold text-gray-700">Green Coverage</span>
+                  </div>
+                  <span className="text-3xl font-black text-green-600">72%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 h-full rounded-full transition-all duration-1000 shadow-lg"
+                    style={{ width: '72%' }}
+                  ></div>
+                </div>
+                <p className="text-xs text-green-700 font-semibold mt-2">+38% improvement detected</p>
+              </div>
+
+              {/* Feature Icons */}
+              <div className="grid grid-cols-3 gap-3 mt-6">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <Shield className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                  <p className="text-xs font-bold text-blue-700">Secure</p>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                  <Sparkles className="w-6 h-6 text-purple-600 mx-auto mb-1" />
+                  <p className="text-xs font-bold text-purple-700">AI-Powered</p>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <Leaf className="w-6 h-6 text-green-600 mx-auto mb-1" />
+                  <p className="text-xs font-bold text-green-700">Eco-Friendly</p>
                 </div>
               </div>
 
-              {/* Floating badge */}
-              <div className="absolute -top-4 -right-4 bg-yellow-400 text-yellow-900 px-4 py-2 rounded-full font-bold shadow-lg animate-bounce">
-                100% Free
-              </div>
             </div>
+
+            {/* Floating Badge */}
+            <div className="absolute -top-4 -right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-full font-black shadow-2xl animate-bounce border-4 border-white text-sm">
+              ✨ 100% FREE
+            </div>
+
+            {/* Decorative elements */}
+            <div className="absolute -bottom-4 -left-4 bg-green-500 text-white px-5 py-2 rounded-full font-bold shadow-xl text-xs">
+              🌱 Eco-Friendly
+            </div>
+
           </div>
+
         </div>
       </div>
     </div>
