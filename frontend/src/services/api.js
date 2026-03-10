@@ -5,8 +5,11 @@
 
 import axios from 'axios';
 
-// Base URL for API - empty string for same domain (production), localhost for dev
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// Base URL for API - auto-detect production vs development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : (typeof window !== 'undefined' ? window.location.origin : ''));
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -133,7 +136,13 @@ const api = {
    * @param {string} filename - Name of the generated image
    */
   getDownloadUrl: (filename) => {
-    return `${API_BASE_URL}/api/download/${filename}`;
+    // Auto-detect the correct base URL
+    const baseUrl = import.meta.env.VITE_API_URL || 
+      (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+        ? 'http://localhost:8000' 
+        : (typeof window !== 'undefined' ? window.location.origin : ''));
+    
+    return `${baseUrl}/api/download/${filename}`;
   },
 
   /**
