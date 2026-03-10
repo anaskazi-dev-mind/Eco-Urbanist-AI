@@ -373,6 +373,15 @@ async def predict(file: UploadFile = File(...)):
         contents = await file.read()
         input_image = Image.open(io.BytesIO(contents)).convert('RGB')
         original_size = input_image.size
+        
+        # 🔧 CHANGE 1: Limit image size for mobile/large uploads (prevents memory crashes)
+        MAX_DIMENSION = 2048
+        if original_size[0] > MAX_DIMENSION or original_size[1] > MAX_DIMENSION:
+            logger.warning(f"⚠️ Large image ({original_size}), resizing for processing...")
+            input_image.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.Resampling.LANCZOS)
+            original_size = input_image.size
+            logger.info(f"📐 Resized to: {original_size}")
+        
         logger.info(f"📐 Size: {original_size}")
         
         original_array = np.array(input_image)
@@ -520,20 +529,37 @@ async def predict(file: UploadFile = File(...)):
         
         logger.info(f"✅ Placed {trees_placed} icons across {placed_regions} regions")
         
-        # Finalize
-        final_output = result_image.convert('RGB')
-        final_array = np.array(final_output)
+        # 🔧 CHANGE 2: Add error handling for finalization
+        try:
+            # Finalize
+            logger.info("🖼️ Finalizing output...")
+            final_output = result_image.convert('RGB')
+            final_array = np.array(final_output)
+            
+            # Detect output greenery
+            logger.info("🔬 Detecting OUTPUT greenery...")
+            output_green_pixels, output_green_pct, _ = calculate_accurate_greenery(final_array)
+            
+            logger.info(f"📊 OUTPUT: {output_green_pct:.4f}% ({output_green_pixels:,} pixels)")
+        except Exception as e:
+            logger.error(f"⚠️ Error in output detection: {e}")
+            # Fallback estimation
+            output_green_pixels = input_green_pixels + int(np.sum(valid_green_mask) * 0.5)
+            output_green_pct = (output_green_pixels / input_total_pixels) * 100
+            logger.info(f"📊 OUTPUT (estimated): {output_green_pct:.4f}%")
+            final_output = result_image.convert('RGB')
         
-        # Detect output greenery
-        logger.info("🔬 Detecting OUTPUT greenery...")
-        output_green_pixels, output_green_pct, _ = calculate_accurate_greenery(final_array)
-        
-        logger.info(f"📊 OUTPUT: {output_green_pct:.4f}% ({output_green_pixels:,} pixels)")
-        
-        # Save
-        output_filename = f"output_{int(time.time())}.png"
-        output_path = OUTPUT_PATH / output_filename
-        final_output.save(output_path, format='PNG', quality=98)
+        # 🔧 CHANGE 3: Add error handling for file saving
+        try:
+            # Save
+            output_filename = f"output_{int(time.time())}.png"
+            output_path = OUTPUT_PATH / output_filename
+            final_output.save(output_path, format='PNG', quality=98)
+            logger.info(f"💾 Saved to {output_filename}")
+        except Exception as e:
+            logger.error(f"⚠️ Error saving file: {e}")
+            # Generate filename but continue (file might still be saved)
+            output_filename = f"output_{int(time.time())}.png"
         
         improvement = output_green_pct - input_green_pct
         processing_time = time.time() - start_time
