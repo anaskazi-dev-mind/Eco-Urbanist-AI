@@ -14,7 +14,7 @@ const Footer = () => {
 
       <div className="container-custom py-16 relative z-10">
         
-        {/* The Problem Section - NEW! */}
+        {/* The Problem Section */}
         <div className="mb-16 bg-gradient-to-r from-red-500/10 via-orange-500/10 to-red-500/10 border-2 border-red-500/30 rounded-3xl p-8 backdrop-blur-sm">
           <div className="flex items-center gap-3 mb-6">
             <AlertTriangle className="w-8 h-8 text-red-400 animate-pulse" />
@@ -52,7 +52,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* The Solution Section - NEW! */}
+        {/* The Solution Section */}
         <div className="mb-16 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-green-500/10 border-2 border-green-500/30 rounded-3xl p-8 backdrop-blur-sm">
           <div className="flex items-center gap-3 mb-6">
             <Sparkles className="w-8 h-8 text-green-400 animate-pulse" />
@@ -113,7 +113,7 @@ const Footer = () => {
               green-enhanced city layouts. Works with <span className="font-bold">desert AND city images!</span>
             </p>
             
-            {/* Target Audience - NEW! */}
+            {/* Target Audience */}
             <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-2 border-indigo-500/30 rounded-2xl p-5 mb-6">
               <p className="text-sm font-black text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Users className="w-4 h-4" />
@@ -160,7 +160,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center gap-2 bg-gray-800 px-5 py-3 rounded-xl hover:bg-gradient-to-r hover:from-gray-700 hover:to-gray-800 transition-all transform hover:scale-110 hover:-translate-y-1 shadow-xl hover:shadow-2xl border border-gray-700 hover:border-green-500"
-                  title="View Source Code on GitHub"
+                  aria-label="View Source Code on GitHub"
                 >
                   <Github className="w-5 h-5 group-hover:text-green-400 transition-colors" />
                   <span className="text-sm font-bold">GitHub</span>
@@ -172,7 +172,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-110 hover:-translate-y-1 shadow-xl hover:shadow-blue-500/50 border-2 border-blue-500"
-                  title="Connect on LinkedIn"
+                  aria-label="Connect on LinkedIn"
                 >
                   <Linkedin className="w-5 h-5 text-white" />
                   <span className="text-sm font-bold text-white">LinkedIn</span>
@@ -185,6 +185,7 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex items-center gap-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/50 px-6 py-3 rounded-xl hover:bg-gradient-to-r hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-400 transition-all backdrop-blur-sm transform hover:scale-105"
+                aria-label="Star this project on GitHub"
               >
                 <Sparkles className="w-5 h-5 text-green-400 animate-pulse" />
                 <span className="text-sm font-black text-green-400">⭐ Star this project on GitHub</span>
@@ -202,6 +203,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-base font-black text-white hover:text-green-400 transition-colors flex items-center gap-2 mb-1"
+                  aria-label="Visit Anas Kazi's GitHub Profile"
                 >
                   <Code2 className="w-4 h-4" />
                   Anas Kazi & Team
@@ -243,6 +245,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center hover:text-green-400 transition-all font-semibold text-gray-400"
+                  aria-label="Open Live Demo"
                 >
                   <span className="mr-2 text-green-500 group-hover:translate-x-2 transition-transform">→</span>
                   Live Demo
@@ -255,6 +258,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center hover:text-green-400 transition-all font-semibold text-gray-400"
+                  aria-label="View Source Code"
                 >
                   <span className="mr-2 text-green-500 group-hover:translate-x-2 transition-transform">→</span>
                   Source Code
@@ -263,10 +267,11 @@ const Footer = () => {
               </li>
               <li>
                 <a 
-                  href="https://github.com/anaskazi-dev-mind/Eco-Urbanist-AI/blob/main/README.md"
+                  href="https://github.com/anaskazi-dev-mind/Eco-Urbanist-AI#readme"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center hover:text-green-400 transition-all font-semibold text-gray-400"
+                  aria-label="Read Documentation"
                 >
                   <span className="mr-2 text-green-500 group-hover:translate-x-2 transition-transform">→</span>
                   Documentation
@@ -279,6 +284,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center hover:text-green-400 transition-all font-semibold text-gray-400"
+                  aria-label="Report Issues on GitHub"
                 >
                   <span className="mr-2 text-green-500 group-hover:translate-x-2 transition-transform">→</span>
                   Report Issues
@@ -366,6 +372,7 @@ const Footer = () => {
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="ml-1 text-green-400 hover:text-green-300 font-bold transition-colors"
+                  aria-label="Visit Anas Kazi's GitHub"
                 >
                   Anas Kazi & Team
                 </a>
