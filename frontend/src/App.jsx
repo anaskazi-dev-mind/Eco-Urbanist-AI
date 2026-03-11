@@ -1,12 +1,35 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Upload from './pages/Upload';
 import Results from './pages/Results';
-import Gallery from './pages/Gallery'; // 🔧 NEW
+import Gallery from './pages/Gallery';
+import OnboardingTour from './components/OnboardingTour'; // 🔧 NEW
+import InstallPWA from './components/InstallPWA'; // 🔧 NEW
 
 function App() {
+  // 🔧 NEW: Tour state
+  const [runTour, setRunTour] = useState(false);
+
+  useEffect(() => {
+    // Check if user has seen the tour
+    const hasSeenTour = localStorage.getItem('onboarding-tour-completed');
+    
+    if (!hasSeenTour) {
+      // Show tour after 1 second on first visit
+      setTimeout(() => {
+        setRunTour(true);
+      }, 1000);
+    }
+  }, []);
+
+  const handleTourFinish = () => {
+    setRunTour(false);
+    localStorage.setItem('onboarding-tour-completed', 'true');
+  };
+
   return (
     <Router>
       <div className="flex flex-col min-h-screen relative">
@@ -37,10 +60,16 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/upload" element={<Upload />} />
             <Route path="/results" element={<Results />} />
-            <Route path="/gallery" element={<Gallery />} /> {/* 🔧 NEW */}
+            <Route path="/gallery" element={<Gallery />} />
           </Routes>
         </main>
         <Footer />
+
+        {/* 🔧 NEW: Onboarding Tour */}
+        <OnboardingTour run={runTour} onFinish={handleTourFinish} />
+
+        {/* 🔧 NEW: PWA Install Prompt */}
+        <InstallPWA />
       </div>
     </Router>
   );

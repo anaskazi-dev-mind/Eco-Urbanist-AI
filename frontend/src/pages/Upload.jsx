@@ -227,12 +227,12 @@ const Upload = () => {
         {/* Upload Card */}
         <div className="bg-white rounded-3xl shadow-2xl p-10 mb-10 border border-gray-100">
           {!file ? (
-            // Upload Zone
+            // Upload Zone - 🔧 ADDED "upload-zone" CLASS
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-3 border-dashed rounded-2xl p-16 text-center transition-all duration-300 ${
+              className={`upload-zone border-3 border-dashed rounded-2xl p-16 text-center transition-all duration-300 ${
                 isDragging
                   ? 'border-green-500 bg-green-50 scale-105 shadow-lg'
                   : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'
@@ -366,12 +366,12 @@ const Upload = () => {
             </div>
           )}
 
-          {/* Generate Button */}
+          {/* Generate Button - 🔧 ADDED "generate-button" CLASS */}
           {file && !isProcessing && (
             <button
               onClick={handleGenerate}
               disabled={isProcessing}
-              className="w-full mt-8 group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-5 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-black text-xl shadow-2xl hover:shadow-green-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="generate-button w-full mt-8 group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-5 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-black text-xl shadow-2xl hover:shadow-green-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
               Generate Green Visualization
