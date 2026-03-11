@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Download, ArrowLeft, TrendingUp, Leaf, TreePine, Sparkles, Award, BarChart3, Cloud, Droplets, Sun, Wind } from 'lucide-react';
+import { Download, ArrowLeft, TrendingUp, Leaf, TreePine, Sparkles, Award, BarChart3, Cloud, Droplets, Sun, Wind, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import api from '../services/api';
 import { getGreenScoreColor, getGreenScoreLabel } from '../utils/helpers';
 import ImageComparisonSlider from '../components/ImageComparisonSlider';
+import { galleryStorage } from '../utils/storage'; // 🔧 NEW
 
 const Results = () => {
   const location = useLocation();
@@ -14,9 +15,10 @@ const Results = () => {
   const [outputUrl, setOutputUrl] = useState(null);
   const [resultData, setResultData] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [savedToGallery, setSavedToGallery] = useState(false); // 🔧 NEW
 
   useEffect(() => {
-    const { result, inputFile } = location.state || {};
+    const { result, inputFile, fromGallery, galleryInputPreview } = location.state || {};
 
     if (!result) {
       navigate('/upload');
@@ -29,12 +31,43 @@ const Results = () => {
       setOutputUrl(api.getDownloadUrl(result.output_filename));
     }
 
-    if (inputFile) {
+    // 🔧 NEW: Handle input preview (from upload or gallery)
+    if (fromGallery && galleryInputPreview) {
+      // Viewing from gallery - use saved preview
+      setInputPreview(galleryInputPreview);
+      setSavedToGallery(true); // Already in gallery
+    } else if (inputFile) {
+      // Fresh generation - read file and save to gallery
       const reader = new FileReader();
-      reader.onload = (e) => setInputPreview(e.target.result);
+      reader.onload = (e) => {
+        const preview = e.target.result;
+        setInputPreview(preview);
+        
+        // 🔧 NEW: Auto-save to gallery
+        saveToGallery(result, preview);
+      };
       reader.readAsDataURL(inputFile);
     }
   }, [location, navigate]);
+
+  // 🔧 NEW: Save result to gallery
+  const saveToGallery = (result, inputImagePreview) => {
+    try {
+      const galleryItem = {
+        inputImage: inputImagePreview,
+        outputFilename: result.output_filename,
+        greenScores: result.green_scores,
+        visualization: result.visualization,
+        metadata: result.metadata,
+      };
+      
+      galleryStorage.add(galleryItem);
+      setSavedToGallery(true);
+      console.log('✅ Saved to gallery');
+    } catch (error) {
+      console.error('Failed to save to gallery:', error);
+    }
+  };
 
   const handleDownload = async () => {
     if (resultData?.output_filename) {
@@ -102,13 +135,26 @@ const Results = () => {
         
         {/* Header */}
         <div className="mb-10">
-          <Link
-            to="/upload"
-            className="group inline-flex items-center text-green-600 hover:text-green-700 font-bold mb-6 transition-all bg-white px-5 py-3 rounded-xl shadow-md hover:shadow-lg"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-            Generate Another
-          </Link>
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+            <Link
+              to="/upload"
+              className="group inline-flex items-center text-green-600 hover:text-green-700 font-bold transition-all bg-white px-5 py-3 rounded-xl shadow-md hover:shadow-lg"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Generate Another
+            </Link>
+            
+            {/* 🔧 NEW: Gallery saved indicator */}
+            {savedToGallery && (
+              <Link
+                to="/gallery"
+                className="group inline-flex items-center text-blue-600 hover:text-blue-700 font-bold transition-all bg-white px-5 py-3 rounded-xl shadow-md hover:shadow-lg border-2 border-blue-200"
+              >
+                <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
+                Saved to Gallery
+              </Link>
+            )}
+          </div>
           
           <div className="text-center">
             <div className="inline-flex items-center bg-white shadow-md border border-green-200 px-5 py-2.5 rounded-full mb-6">

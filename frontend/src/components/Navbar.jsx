@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Leaf, Sparkles } from 'lucide-react';
+import { Menu, X, Leaf, Sparkles, Image as ImageIcon } from 'lucide-react'; // 🔧 Added ImageIcon
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,6 +46,18 @@ const Navbar = () => {
               }`}
             >
               Upload
+            </Link>
+            {/* 🔧 NEW: Gallery Link */}
+            <Link 
+              to="/gallery" 
+              className={`px-5 py-2.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${
+                isActive('/gallery') 
+                  ? 'text-green-600 bg-green-50' 
+                  : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
+              }`}
+            >
+              <ImageIcon className="w-4 h-4" />
+              Gallery
             </Link>
             <Link 
               to="/upload" 
@@ -94,6 +106,19 @@ const Navbar = () => {
                 }`}
               >
                 Upload
+              </Link>
+              {/* 🔧 NEW: Gallery Link Mobile */}
+              <Link
+                to="/gallery"
+                onClick={toggleMenu}
+                className={`px-5 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${
+                  isActive('/gallery') 
+                    ? 'text-green-600 bg-green-50' 
+                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
+                }`}
+              >
+                <ImageIcon className="w-4 h-4" />
+                Gallery
               </Link>
               <Link
                 to="/upload"
