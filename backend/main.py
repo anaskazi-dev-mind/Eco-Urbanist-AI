@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 import logging
 import random
+import asyncio  # 🔧 NEW: For request queue
+import gc  # 🔧 NEW: For memory cleanup
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +28,10 @@ except ImportError as e:
     raise ImportError("TensorFlow not installed")
 
 app = FastAPI(title="Eco-Urbanist AI", version="2.2.0")
+
+# 🔧 NEW: Request queue system (only 1 concurrent request)
+processing_lock = asyncio.Lock()
+active_requests = 0
 
 # CORS
 app.add_middleware(
@@ -334,6 +340,7 @@ def health_check():
         "version": "2.2.0",
         "model_loaded": model is not None,
         "icons_loaded": sum(len(icons) for icons in tree_icons.values()),
+        "active_requests": active_requests,  # 🔧 NEW: Show queue status
         "features": [
             "Enhanced building detection (10 methods)",
             "Natural tree density",
@@ -343,7 +350,7 @@ def health_check():
     }
 
 # API endpoints
-@app.get("/api/info")  # ← CHANGED FROM "/" TO "/api/info"
+@app.get("/api/info")
 def root():
     return {
         "message": "Eco-Urbanist AI Backend 🌳",
@@ -361,247 +368,273 @@ def root():
 @app.post("/api/predict")
 async def predict(file: UploadFile = File(...)):
     """Main prediction endpoint with enhanced building detection"""
-    start_time = time.time()
+    global active_requests
     
-    if model is None:
-        raise HTTPException(status_code=503, detail="AI model not loaded")
+    # 🔧 NEW: Check if another request is processing
+    if processing_lock.locked():
+        logger.warning(f"⏳ Server busy - another request is being processed")
+        raise HTTPException(
+            status_code=503, 
+            detail="Server is processing another request. Please wait 30-60 seconds and try again."
+        )
     
-    try:
-        logger.info(f"📥 Processing: {file.filename}")
+    # 🔧 NEW: Acquire lock (only 1 request at a time)
+    async with processing_lock:
+        active_requests += 1
+        logger.info(f"🔒 Processing request (active: {active_requests})")
         
-        # Read image
-        contents = await file.read()
-        input_image = Image.open(io.BytesIO(contents)).convert('RGB')
-        original_size = input_image.size
-        
-        # 🔧 CHANGE 1: Limit image size for mobile/large uploads (prevents memory crashes)
-        MAX_DIMENSION = 2048
-        if original_size[0] > MAX_DIMENSION or original_size[1] > MAX_DIMENSION:
-            logger.warning(f"⚠️ Large image ({original_size}), resizing for processing...")
-            input_image.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.Resampling.LANCZOS)
+        try:
+            start_time = time.time()
+            
+            if model is None:
+                raise HTTPException(status_code=503, detail="AI model not loaded")
+            
+            logger.info(f"📥 Processing: {file.filename}")
+            
+            # Read image
+            contents = await file.read()
+            input_image = Image.open(io.BytesIO(contents)).convert('RGB')
             original_size = input_image.size
-            logger.info(f"📐 Resized to: {original_size}")
-        
-        logger.info(f"📐 Size: {original_size}")
-        
-        original_array = np.array(input_image)
-        
-        # Detect input greenery
-        logger.info("🔬 Detecting INPUT greenery...")
-        input_green_pixels, input_green_pct, input_green_mask = calculate_accurate_greenery(original_array)
-        input_total_pixels = original_size[0] * original_size[1]
-        
-        logger.info(f"📊 INPUT: {input_green_pct:.4f}% ({input_green_pixels:,}/{input_total_pixels:,} pixels)")
-        
-        # === ENHANCED BUILDING DETECTION (10 METHODS) ===
-        logger.info("🏢 Detecting buildings (enhanced 10-method algorithm)...")
-        building_mask = detect_buildings_enhanced(original_array)
-        
-        # Moderate expansion (balanced)
-        from scipy import ndimage
-        building_safety_zone = ndimage.binary_dilation(building_mask, iterations=8)
-        
-        logger.info(f"🏢 Buildings: {np.sum(building_mask):,} pixels ({(np.sum(building_mask)/input_total_pixels*100):.1f}%)")
-        logger.info(f"🛡️  Safety zone: {np.sum(building_safety_zone):,} pixels ({(np.sum(building_safety_zone)/input_total_pixels*100):.1f}%)")
-        
-        # Detect roads and desert
-        r, g, b = original_array[:,:,0], original_array[:,:,1], original_array[:,:,2]
-        gray_diff = (np.abs(r.astype(int) - g.astype(int)) + 
-                     np.abs(g.astype(int) - b.astype(int)) + 
-                     np.abs(r.astype(int) - b.astype(int)))
-        
-        road_mask = (gray_diff < 30) & (r > 30) & (r < 140) & (g > 30) & (g < 140)
-        sand_mask = (r > 130) & (g > 100) & (b > 60) & (r > b + 20)
-        
-        logger.info(f"🛣️  Roads: {np.sum(road_mask):,} pixels ({(np.sum(road_mask)/input_total_pixels*100):.1f}%)")
-        logger.info(f"🏜️  Desert: {np.sum(sand_mask):,} pixels ({(np.sum(sand_mask)/input_total_pixels*100):.1f}%)")
-        
-        # AI prediction
-        logger.info("🤖 Running AI model...")
-        input_resized = input_image.resize((256, 256), Image.Resampling.LANCZOS)
-        img_array = np.array(input_resized).astype(np.float32)
-        img_array = (img_array / 127.5) - 1.0
-        img_array = np.expand_dims(img_array, 0)
-        
-        prediction = model.predict(img_array, verbose=0)
-        output_array = ((prediction[0] + 1.0) * 127.5).astype(np.uint8)
-        output_array = np.clip(output_array, 0, 255)
-        
-        ai_output = Image.fromarray(output_array, mode='RGB')
-        ai_resized = ai_output.resize(original_size, Image.Resampling.LANCZOS)
-        ai_array = np.array(ai_resized)
-        
-        # Detect AI green
-        r_ai, g_ai, b_ai = ai_array[:,:,0], ai_array[:,:,1], ai_array[:,:,2]
-        ai_green_mask = (g_ai > r_ai + 10) & (g_ai > b_ai + 10) & (g_ai > 50)
-        
-        # Valid placement (excludes buildings)
-        valid_green_mask = (ai_green_mask | sand_mask | road_mask) & (~building_safety_zone)
-        
-        valid_pixels = np.sum(valid_green_mask)
-        logger.info(f"🌳 Valid placement area: {valid_pixels:,} pixels ({(valid_pixels/input_total_pixels*100):.1f}%)")
-        
-        # Fallback if too small
-        if valid_pixels < (input_total_pixels * 0.1):
-            logger.warning("⚠️ Valid area too small - expanding to all non-building areas")
-            valid_green_mask = ~building_mask
+            
+            # Limit image size for mobile/large uploads (prevents memory crashes)
+            MAX_DIMENSION = 2048
+            if original_size[0] > MAX_DIMENSION or original_size[1] > MAX_DIMENSION:
+                logger.warning(f"⚠️ Large image ({original_size}), resizing for processing...")
+                input_image.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.Resampling.LANCZOS)
+                original_size = input_image.size
+                logger.info(f"📐 Resized to: {original_size}")
+            
+            logger.info(f"📐 Size: {original_size}")
+            
+            original_array = np.array(input_image)
+            
+            # Detect input greenery
+            logger.info("🔬 Detecting INPUT greenery...")
+            input_green_pixels, input_green_pct, input_green_mask = calculate_accurate_greenery(original_array)
+            input_total_pixels = original_size[0] * original_size[1]
+            
+            logger.info(f"📊 INPUT: {input_green_pct:.4f}% ({input_green_pixels:,}/{input_total_pixels:,} pixels)")
+            
+            # === ENHANCED BUILDING DETECTION (10 METHODS) ===
+            logger.info("🏢 Detecting buildings (enhanced 10-method algorithm)...")
+            building_mask = detect_buildings_enhanced(original_array)
+            
+            # Moderate expansion (balanced)
+            from scipy import ndimage
+            building_safety_zone = ndimage.binary_dilation(building_mask, iterations=8)
+            
+            logger.info(f"🏢 Buildings: {np.sum(building_mask):,} pixels ({(np.sum(building_mask)/input_total_pixels*100):.1f}%)")
+            logger.info(f"🛡️  Safety zone: {np.sum(building_safety_zone):,} pixels ({(np.sum(building_safety_zone)/input_total_pixels*100):.1f}%)")
+            
+            # Detect roads and desert
+            r, g, b = original_array[:,:,0], original_array[:,:,1], original_array[:,:,2]
+            gray_diff = (np.abs(r.astype(int) - g.astype(int)) + 
+                         np.abs(g.astype(int) - b.astype(int)) + 
+                         np.abs(r.astype(int) - b.astype(int)))
+            
+            road_mask = (gray_diff < 30) & (r > 30) & (r < 140) & (g > 30) & (g < 140)
+            sand_mask = (r > 130) & (g > 100) & (b > 60) & (r > b + 20)
+            
+            logger.info(f"🛣️  Roads: {np.sum(road_mask):,} pixels ({(np.sum(road_mask)/input_total_pixels*100):.1f}%)")
+            logger.info(f"🏜️  Desert: {np.sum(sand_mask):,} pixels ({(np.sum(sand_mask)/input_total_pixels*100):.1f}%)")
+            
+            # AI prediction
+            logger.info("🤖 Running AI model...")
+            input_resized = input_image.resize((256, 256), Image.Resampling.LANCZOS)
+            img_array = np.array(input_resized).astype(np.float32)
+            img_array = (img_array / 127.5) - 1.0
+            img_array = np.expand_dims(img_array, 0)
+            
+            prediction = model.predict(img_array, verbose=0)
+            output_array = ((prediction[0] + 1.0) * 127.5).astype(np.uint8)
+            output_array = np.clip(output_array, 0, 255)
+            
+            ai_output = Image.fromarray(output_array, mode='RGB')
+            ai_resized = ai_output.resize(original_size, Image.Resampling.LANCZOS)
+            ai_array = np.array(ai_resized)
+            
+            # Detect AI green
+            r_ai, g_ai, b_ai = ai_array[:,:,0], ai_array[:,:,1], ai_array[:,:,2]
+            ai_green_mask = (g_ai > r_ai + 10) & (g_ai > b_ai + 10) & (g_ai > 50)
+            
+            # Valid placement (excludes buildings)
+            valid_green_mask = (ai_green_mask | sand_mask | road_mask) & (~building_safety_zone)
+            
             valid_pixels = np.sum(valid_green_mask)
-            logger.info(f"   🔄 Expanded to {valid_pixels:,} pixels ({(valid_pixels/input_total_pixels*100):.1f}%)")
-        
-        # Apply overlay
-        logger.info("🎨 Applying green overlay...")
-        result_array = create_green_overlay(original_array, valid_green_mask, intensity=0.55)
-        result_image = Image.fromarray(result_array).convert('RGBA')
-        
-        # Place tree icons
-        logger.info("🌲 Placing tree icons (natural density)...")
-        labeled, num_features = ndimage.label(valid_green_mask)
-        
-        trees_placed = 0
-        icon_usage = {'large': 0, 'medium': 0, 'small': 0, 'bush': 0, 'grass': 0}
-        max_trees = 80
-        
-        regions = []
-        for region_id in range(1, num_features + 1):
-            coords = np.where(labeled == region_id)
-            area_size = len(coords[0])
+            logger.info(f"🌳 Valid placement area: {valid_pixels:,} pixels ({(valid_pixels/input_total_pixels*100):.1f}%)")
             
-            if area_size < 50:
-                continue
+            # Fallback if too small
+            if valid_pixels < (input_total_pixels * 0.1):
+                logger.warning("⚠️ Valid area too small - expanding to all non-building areas")
+                valid_green_mask = ~building_mask
+                valid_pixels = np.sum(valid_green_mask)
+                logger.info(f"   🔄 Expanded to {valid_pixels:,} pixels ({(valid_pixels/input_total_pixels*100):.1f}%)")
             
-            center_y = int(np.mean(coords[0]))
-            center_x = int(np.mean(coords[1]))
+            # Apply overlay
+            logger.info("🎨 Applying green overlay...")
+            result_array = create_green_overlay(original_array, valid_green_mask, intensity=0.55)
+            result_image = Image.fromarray(result_array).convert('RGBA')
             
-            regions.append({
-                'coords': coords,
-                'center': (center_x, center_y),
-                'area': area_size
-            })
-        
-        regions.sort(key=lambda x: x['area'], reverse=True)
-        logger.info(f"   🎯 Found {len(regions)} regions")
-        
-        # Place icons
-        placed_regions = 0
-        for idx, region in enumerate(regions):
-            if trees_placed >= max_trees:
-                break
+            # Place tree icons
+            logger.info("🌲 Placing tree icons (natural density)...")
+            labeled, num_features = ndimage.label(valid_green_mask)
             
-            if random.random() > 0.6:  # Skip 40%
-                continue
+            trees_placed = 0
+            icon_usage = {'large': 0, 'medium': 0, 'small': 0, 'bush': 0, 'grass': 0}
+            max_trees = 80
             
-            area = region['area']
-            center_x, center_y = region['center']
+            regions = []
+            for region_id in range(1, num_features + 1):
+                coords = np.where(labeled == region_id)
+                area_size = len(coords[0])
+                
+                if area_size < 50:
+                    continue
+                
+                center_y = int(np.mean(coords[0]))
+                center_x = int(np.mean(coords[1]))
+                
+                regions.append({
+                    'coords': coords,
+                    'center': (center_x, center_y),
+                    'area': area_size
+                })
             
-            if building_mask[center_y, center_x]:
-                continue
+            regions.sort(key=lambda x: x['area'], reverse=True)
+            logger.info(f"   🎯 Found {len(regions)} regions")
             
-            if area > 4000 and tree_icons['large']:
-                icon = random.choice(tree_icons['large'])
-                scale = random.uniform(2.5, 4.0)
-                icon_type = 'large'
-            elif area > 1500 and tree_icons['medium']:
-                icon = random.choice(tree_icons['medium'])
-                scale = random.uniform(2.0, 3.0)
-                icon_type = 'medium'
-            elif area > 600 and tree_icons['small']:
-                icon = random.choice(tree_icons['small'])
-                scale = random.uniform(1.5, 2.5)
-                icon_type = 'small'
-            elif area > 250 and tree_icons['bush']:
-                icon = random.choice(tree_icons['bush'])
-                scale = random.uniform(1.2, 2.0)
-                icon_type = 'bush'
-            elif area > 100 and tree_icons['grass']:
-                icon = random.choice(tree_icons['grass'])
-                scale = random.uniform(1.0, 1.6)
-                icon_type = 'grass'
-            else:
-                continue
+            # Place icons
+            placed_regions = 0
+            for idx, region in enumerate(regions):
+                if trees_placed >= max_trees:
+                    break
+                
+                if random.random() > 0.6:  # Skip 40%
+                    continue
+                
+                area = region['area']
+                center_x, center_y = region['center']
+                
+                if building_mask[center_y, center_x]:
+                    continue
+                
+                if area > 4000 and tree_icons['large']:
+                    icon = random.choice(tree_icons['large'])
+                    scale = random.uniform(2.5, 4.0)
+                    icon_type = 'large'
+                elif area > 1500 and tree_icons['medium']:
+                    icon = random.choice(tree_icons['medium'])
+                    scale = random.uniform(2.0, 3.0)
+                    icon_type = 'medium'
+                elif area > 600 and tree_icons['small']:
+                    icon = random.choice(tree_icons['small'])
+                    scale = random.uniform(1.5, 2.5)
+                    icon_type = 'small'
+                elif area > 250 and tree_icons['bush']:
+                    icon = random.choice(tree_icons['bush'])
+                    scale = random.uniform(1.2, 2.0)
+                    icon_type = 'bush'
+                elif area > 100 and tree_icons['grass']:
+                    icon = random.choice(tree_icons['grass'])
+                    scale = random.uniform(1.0, 1.6)
+                    icon_type = 'grass'
+                else:
+                    continue
+                
+                try:
+                    result_image = place_icon_on_image(result_image, icon, center_x, center_y, scale, building_mask)
+                    trees_placed += 1
+                    icon_usage[icon_type] += 1
+                    placed_regions += 1
+                except:
+                    continue
             
+            logger.info(f"✅ Placed {trees_placed} icons across {placed_regions} regions")
+            
+            # Add error handling for finalization
             try:
-                result_image = place_icon_on_image(result_image, icon, center_x, center_y, scale, building_mask)
-                trees_placed += 1
-                icon_usage[icon_type] += 1
-                placed_regions += 1
-            except:
-                continue
-        
-        logger.info(f"✅ Placed {trees_placed} icons across {placed_regions} regions")
-        
-        # 🔧 CHANGE 2: Add error handling for finalization
-        try:
-            # Finalize
-            logger.info("🖼️ Finalizing output...")
-            final_output = result_image.convert('RGB')
-            final_array = np.array(final_output)
+                # Finalize
+                logger.info("🖼️ Finalizing output...")
+                final_output = result_image.convert('RGB')
+                final_array = np.array(final_output)
+                
+                # Detect output greenery
+                logger.info("🔬 Detecting OUTPUT greenery...")
+                output_green_pixels, output_green_pct, _ = calculate_accurate_greenery(final_array)
+                
+                logger.info(f"📊 OUTPUT: {output_green_pct:.4f}% ({output_green_pixels:,} pixels)")
+            except Exception as e:
+                logger.error(f"⚠️ Error in output detection: {e}")
+                # Fallback estimation
+                output_green_pixels = input_green_pixels + int(np.sum(valid_green_mask) * 0.5)
+                output_green_pct = (output_green_pixels / input_total_pixels) * 100
+                logger.info(f"📊 OUTPUT (estimated): {output_green_pct:.4f}%")
+                final_output = result_image.convert('RGB')
             
-            # Detect output greenery
-            logger.info("🔬 Detecting OUTPUT greenery...")
-            output_green_pixels, output_green_pct, _ = calculate_accurate_greenery(final_array)
+            # Add error handling for file saving
+            try:
+                # Save
+                output_filename = f"output_{int(time.time())}.png"
+                output_path = OUTPUT_PATH / output_filename
+                final_output.save(output_path, format='PNG', quality=98)
+                logger.info(f"💾 Saved to {output_filename}")
+            except Exception as e:
+                logger.error(f"⚠️ Error saving file: {e}")
+                # Generate filename but continue (file might still be saved)
+                output_filename = f"output_{int(time.time())}.png"
             
-            logger.info(f"📊 OUTPUT: {output_green_pct:.4f}% ({output_green_pixels:,} pixels)")
-        except Exception as e:
-            logger.error(f"⚠️ Error in output detection: {e}")
-            # Fallback estimation
-            output_green_pixels = input_green_pixels + int(np.sum(valid_green_mask) * 0.5)
-            output_green_pct = (output_green_pixels / input_total_pixels) * 100
-            logger.info(f"📊 OUTPUT (estimated): {output_green_pct:.4f}%")
-            final_output = result_image.convert('RGB')
-        
-        # 🔧 CHANGE 3: Add error handling for file saving
-        try:
-            # Save
-            output_filename = f"output_{int(time.time())}.png"
-            output_path = OUTPUT_PATH / output_filename
-            final_output.save(output_path, format='PNG', quality=98)
-            logger.info(f"💾 Saved to {output_filename}")
-        except Exception as e:
-            logger.error(f"⚠️ Error saving file: {e}")
-            # Generate filename but continue (file might still be saved)
-            output_filename = f"output_{int(time.time())}.png"
-        
-        improvement = output_green_pct - input_green_pct
-        processing_time = time.time() - start_time
-        
-        logger.info(f"✅ Complete in {processing_time:.2f}s | Improvement: +{improvement:.4f}%")
-        
-        return {
-            "success": True,
-            "output_filename": output_filename,
-            "green_scores": {
-                "input": {
-                    "green_pixels": int(input_green_pixels),
-                    "total_pixels": input_total_pixels,
-                    "green_score": round(input_green_pct, 4)
+            improvement = output_green_pct - input_green_pct
+            processing_time = time.time() - start_time
+            
+            logger.info(f"✅ Complete in {processing_time:.2f}s | Improvement: +{improvement:.4f}%")
+            
+            return {
+                "success": True,
+                "output_filename": output_filename,
+                "green_scores": {
+                    "input": {
+                        "green_pixels": int(input_green_pixels),
+                        "total_pixels": input_total_pixels,
+                        "green_score": round(input_green_pct, 4)
+                    },
+                    "output": {
+                        "green_pixels": int(output_green_pixels),
+                        "total_pixels": input_total_pixels,
+                        "green_score": round(output_green_pct, 4)
+                    },
+                    "improvement": round(improvement, 4)
                 },
-                "output": {
-                    "green_pixels": int(output_green_pixels),
-                    "total_pixels": input_total_pixels,
-                    "green_score": round(output_green_pct, 4)
+                "visualization": {
+                    "trees_placed": trees_placed,
+                    "icon_breakdown": icon_usage,
+                    "regions_used": placed_regions
                 },
-                "improvement": round(improvement, 4)
-            },
-            "visualization": {
-                "trees_placed": trees_placed,
-                "icon_breakdown": icon_usage,
-                "regions_used": placed_regions
-            },
-            "metadata": {
-                "model_trained": True,
-                "processing_time": f"{processing_time:.2f}s",
-                "original_size": f"{original_size[0]}x{original_size[1]}",
-                "version": "2.2.0",
-                "building_detection": "enhanced (10 methods)",
-                "tree_density": "natural"
+                "metadata": {
+                    "model_trained": True,
+                    "processing_time": f"{processing_time:.2f}s",
+                    "original_size": f"{original_size[0]}x{original_size[1]}",
+                    "version": "2.2.0",
+                    "building_detection": "enhanced (10 methods)",
+                    "tree_density": "natural"
+                }
             }
-        }
-    
-    except Exception as e:
-        logger.error(f"❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        
+        except HTTPException:
+            raise  # Re-raise HTTP exceptions as-is
+        except Exception as e:
+            logger.error(f"❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=str(e))
+        
+        finally:
+            # 🔧 NEW: Cleanup and release lock
+            active_requests -= 1
+            logger.info(f"🔓 Request completed (active: {active_requests})")
+            
+            # Memory cleanup
+            gc.collect()
+            logger.info("🧹 Memory cleaned up")
 
 @app.get("/api/download/{filename}")
 async def download_image(filename: str):
@@ -663,5 +696,5 @@ if FRONTEND_DIST.exists():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    logger.info(f"🚀 Starting Eco-Urbanist AI v2.2.0 (Enhanced Building Detection)")
+    logger.info(f"🚀 Starting Eco-Urbanist AI v2.2.0 (Enhanced Building Detection + Queue System)")
     uvicorn.run(app, host="0.0.0.0", port=port)

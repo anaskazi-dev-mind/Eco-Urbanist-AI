@@ -75,7 +75,7 @@ const Upload = () => {
 
   const handleGenerate = async () => {
     if (isGeneratingRef.current) {
-      console.warn('���️ Generation already in progress');
+      console.warn('⚠️ Generation already in progress');
       return;
     }
 
@@ -92,45 +92,62 @@ const Upload = () => {
     isGeneratingRef.current = true;
     setIsProcessing(true);
     setError(null);
-    setProgress(10);
-    setStatusMessage('Uploading image...');
+    setProgress(0);
+    setStatusMessage('Initializing...');
 
     let progressInterval = null;
 
     try {
+      // 🔧 SMOOTH PROGRESS SIMULATION - Updates every 300ms
       progressInterval = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            setStatusMessage('AI is processing... This may take up to 5 minutes.');
-            return 90;
+          // Cap at 95% until we get response
+          if (prev >= 95) {
+            setStatusMessage('🤖 AI is analyzing your image... Almost done!');
+            return prev;
           }
           
-          if (prev < 30) {
-            setStatusMessage('Uploading image...');
-          } else if (prev < 60) {
-            setStatusMessage('Validating satellite image...');
+          // Smooth increment by 1%
+          const next = prev + 1;
+          
+          // Update status messages based on progress
+          if (next <= 10) {
+            setStatusMessage('📤 Uploading image to server...');
+          } else if (next <= 20) {
+            setStatusMessage('🔍 Validating image format...');
+          } else if (next <= 35) {
+            setStatusMessage('🌍 Detecting buildings and infrastructure...');
+          } else if (next <= 50) {
+            setStatusMessage('🏜️ Analyzing terrain and surfaces...');
+          } else if (next <= 65) {
+            setStatusMessage('🤖 AI model generating predictions...');
+          } else if (next <= 80) {
+            setStatusMessage('🌳 Calculating optimal green space placement...');
+          } else if (next <= 90) {
+            setStatusMessage('🎨 Applying green overlay and tree icons...');
           } else {
-            setStatusMessage('AI model generating green spaces...');
+            setStatusMessage('📊 Finalizing results and calculations...');
           }
           
-          return prev + 10;
+          return next;
         });
-      }, 1000);
+      }, 300); // Update every 300ms for smooth animation
 
-      console.log('Calling API to generate prediction...');
+      console.log('📡 Calling API to generate prediction...');
       const result = await api.generatePrediction(file);
 
+      // Clear interval when response arrives
       if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
       }
 
+      // Jump to 100% when complete
       setProgress(100);
-      setStatusMessage('Complete!');
+      setStatusMessage('✅ Complete! Redirecting to results...');
 
       if (result.success) {
-        console.log('Success! Navigating to results...');
+        console.log('✅ Success! Navigating to results...');
         
         setTimeout(() => {
           navigate('/results', { 
@@ -155,19 +172,22 @@ const Upload = () => {
         progressInterval = null;
       }
 
-      console.error('Prediction failed:', err);
+      console.error('❌ Prediction failed:', err);
       
-      if (err.response?.status === 400) {
+      // 🔧 BETTER ERROR HANDLING FOR MULTIPLE USERS
+      if (err.response?.status === 503) {
+        setError('⏳ Server is busy processing another request. Please wait 30 seconds and try again.');
+      } else if (err.response?.status === 400) {
         const errorData = err.response.data;
         if (errorData.detail && typeof errorData.detail === 'object') {
           setError(errorData.detail.message || 'Invalid image type. Please use a satellite/aerial image.');
         } else {
           setError(errorData.detail || 'Invalid image. Please use a satellite/aerial image.');
         }
-      } else if (err.response?.status === 503) {
-        setError('AI model is not available. Please try again later.');
+      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+        setError('⏱️ Request timeout. The server is taking too long. Please try again with a smaller image or wait a moment.');
       } else if (err.message === 'Network Error') {
-        setError('Network error. The image might be too large. Please try a smaller image.');
+        setError('🌐 Network error. The image might be too large. Please try a smaller image.');
       } else {
         setError(err.message || 'An unexpected error occurred. Please try again.');
       }
@@ -301,31 +321,48 @@ const Upload = () => {
                     💡 Tip: Use Google Maps satellite view screenshots or aerial photos
                   </p>
                 )}
+                {error.includes('busy') && (
+                  <p className="text-orange-600 text-sm mt-2 font-bold">
+                    ⏳ Another user is being processed. Please wait 30-60 seconds and try again.
+                  </p>
+                )}
               </div>
             </div>
           )}
 
-          {/* Progress Bar */}
+          {/* Progress Bar - ENHANCED */}
           {isProcessing && (
             <div className="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold text-gray-800">
+                <span className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-green-600" />
                   {statusMessage}
                 </span>
-                <span className="text-lg font-black text-green-600">
+                <span className="text-2xl font-black text-green-600">
                   {progress}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
                 <div
-                  className="bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 h-full transition-all duration-500 ease-out shadow-lg"
+                  className="bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 h-full transition-all duration-300 ease-out shadow-lg relative overflow-hidden"
                   style={{ width: `${progress}%` }}
-                />
+                >
+                  {/* Animated shimmer effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mt-4 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                This process may take 1-5 minutes. Please be patient...
-              </p>
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-gray-600 flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  Processing time: 20-60 seconds on average
+                </p>
+                {progress >= 95 && (
+                  <p className="text-sm text-orange-600 font-bold flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Final calculations in progress... Please don't close this page!
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -361,7 +398,7 @@ const Upload = () => {
             </div>
             <h4 className="font-black text-gray-900 mb-2">⚡ Processing</h4>
             <p className="text-sm text-gray-600">
-              AI generation takes 1-5 minutes. Works with any terrain!
+              AI generation takes 20-60 seconds. Works with any terrain!
             </p>
           </div>
           
@@ -377,6 +414,17 @@ const Upload = () => {
         </div>
 
       </div>
+      
+      {/* Add shimmer animation CSS */}
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-shimmer {
+          animation: shimmer 2s infinite;
+        }
+      `}</style>
     </div>
   );
 };
